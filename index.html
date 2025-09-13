@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Emergency Button</title>
+  <style>
+    :root{
+      --bg: #0f172a;   /* dark navy */
+      --card: #0b1220;
+      --accent: #ff4d4f; /* emergency red */
+      --muted: #94a3b8;
+      --white: #ffffff;
+    }
+    html,body{
+      height:100%;
+      margin:0;
+      font-family: Inter, system-ui, sans-serif;
+      background: linear-gradient(180deg, #071126 0%, #0b1530 100%);
+      color:var(--white);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .wrap{
+      min-height:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+      box-sizing:border-box;
+    }
+    .card{
+      width:100%;
+      max-width:480px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:18px;
+      padding:28px;
+      box-shadow: 0 8px 30px rgba(2,6,23,0.6);
+      text-align:center;
+    }
+    h1{
+      margin:0 0 8px 0;
+      font-size:20px;
+      letter-spacing:0.2px;
+    }
+    p.lead{
+      margin:0 0 18px 0;
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    .number-box{
+      display:flex;
+      gap:8px;
+      justify-content:center;
+      margin-bottom:18px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    input[type="tel"]{
+      font-size:18px;
+      padding:10px 12px;
+      border-radius:10px;
+      border:none;
+      outline:none;
+      width:220px;
+      background: rgba(255,255,255,0.03);
+      color:var(--white);
+      text-align:center;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .small{
+      font-size:13px;
+      color:var(--muted);
+    }
+
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      padding:18px 28px;
+      border-radius:999px;
+      font-size:18px;
+      font-weight:600;
+      cursor:pointer;
+      border:none;
+      text-decoration:none;
+      user-select:none;
+      -webkit-user-select:none;
+      transition:transform .08s ease, box-shadow .12s ease;
+      box-shadow: 0 8px 20px rgba(12,18,28,0.5);
+    }
+
+    .btn:active{ transform: translateY(2px) scale(.998); }
+
+    .btn-emergency{
+      background: linear-gradient(180deg, #ff6b6b, var(--accent));
+      color: white;
+      width:100%;
+      max-width:360px;
+    }
+
+    .options{
+      margin-top:16px;
+      display:flex;
+      gap:8px;
+      justify-content:center;
+      flex-wrap:wrap;
+    }
+    .btn-ghost{
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.06);
+      color:var(--muted);
+      padding:10px 12px;
+      border-radius:10px;
+      font-size:14px;
+    }
+
+    footer{
+      margin-top:18px;
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    /* large circular floating button for very quick access */
+    .floating{
+      display:none;
+    }
+
+    @media (max-width:420px){
+      .card{ padding:20px; border-radius:14px; }
+      .floating{ display:block; position:fixed; right:18px; bottom:18px; z-index:999; }
+      .btn-emergency{ padding:18px; border-radius:999px; width:72px; height:72px; display:flex; justify-content:center; align-items:center; font-size:14px; box-shadow: 0 10px 30px rgba(255,77,79,0.25); }
+      input[type="tel"]{ width:160px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" role="main" aria-labelledby="title">
+      <h1 id="title">Emergency Dialer</h1>
+      <p class="lead">Tap the big button to open your phone's dialer with the emergency number.</p>
+
+      <div class="number-box" aria-hidden="false">
+        <label for="numberInput" class="small" style="display:block;width:100%;">Emergency number</label>
+        <input id="numberInput" type="tel" pattern="[0-9+]*" inputmode="tel"
+               value="8167204669" aria-label="Emergency number to dial" />
+      </div>
+
+      <button id="emBtn" class="btn btn-emergency" aria-live="polite" aria-label="Call emergency">
+        <!-- simple icon using emoji for compatibility -->
+        <span style="font-size:20px;">📞</span>
+        <span id="emText">CALL EMERGENCY</span>
+      </button>
+
+      <div class="options" role="group" aria-label="Options">
+        <button id="confirmToggle" class="btn btn-ghost" aria-pressed="true">Confirmation: ON</button>
+        <button id="demoBtn" class="btn btn-ghost">Test (no call)</button>
+      </div>
+
+      <footer>
+        <div>Tip: On mobile this will open your dialer. On desktop it attempts to use your default telephony app.</div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- floating quick button for phones -->
+  <div class="floating">
+    <button id="fab" class="btn-emergency btn" title="Emergency quick call" aria-label="Quick emergency call">
+      📞
+    </button>
+  </div>
+
+  <script>
+    (function(){
+      const emBtn = document.getElementById('emBtn');
+      const numberInput = document.getElementById('numberInput');
+      const confirmToggle = document.getElementById('confirmToggle');
+      const demoBtn = document.getElementById('demoBtn');
+      const fab = document.getElementById('fab');
+      const emText = document.getElementById('emText');
+
+      // initial states
+      let requireConfirm = true;
+      confirmToggle.addEventListener('click', () => {
+        requireConfirm = !requireConfirm;
+        confirmToggle.textContent = 'Confirmation: ' + (requireConfirm ? 'ON' : 'OFF');
+        confirmToggle.setAttribute('aria-pressed', requireConfirm ? 'true' : 'false');
+      });
+
+      function formatTel(num){
+        // remove spaces and invalid chars except + and digits
+        return (num || '').toString().trim().replace(/[^\d+]/g, '');
+      }
+
+      function openDialer(number){
+        const tel = 'tel:' + formatTel(number);
+        // Use anchor-like navigation so mobile opens dialer; window.location is fallback.
+        const a = document.createElement('a');
+        a.href = tel;
+        // for accessibility, set rel and target not necessary; clicking programmatically:
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+
+      emBtn.addEventListener('click', () => {
+        const number = formatTel(numberInput.value || '');
+        if(!number){
+          alert('Please enter a valid emergency number.');
+          return;
+        }
+
+        const willCall = !requireConfirm || confirm('Call ' + number + ' now? This will open your phone dialer.');
+        if(!willCall) return;
+
+        // Try to open the dialer
+        try {
+          openDialer(number);
+        } catch (e) {
+          // fallback
+          window.location.href = 'tel:' + number;
+        }
+      });
+
+      // floating quick call
+      if(fab){
+        fab.addEventListener('click', () => {
+          const number = formatTel(numberInput.value || '');
+          if(!number) { alert('Set number first.'); return; }
+          if(requireConfirm && !confirm('Quick call ' + number + '?')) return;
+          openDialer(number);
+        });
+      }
+
+      // Demo button for testing in desktop (avoids initiating an actual call)
+      demoBtn.addEventListener('click', () => {
+        const number = formatTel(numberInput.value || '');
+        if(!number){ alert('Please enter a number first.'); return; }
+        alert('Demo: Would open dialer with ' + number + '. On mobile this will open your phone dialer.');
+      });
+
+      // Update button label to show number (accessible)
+      numberInput.addEventListener('input', () => {
+        const num = formatTel(numberInput.value);
+        const display = num ? 'CALL ' + num : 'CALL EMERGENCY';
+        emText.textContent = display;
+        emBtn.setAttribute('aria-label', display);
+        fab && fab.setAttribute('aria-label', display);
+      });
+
+      // Prevent accidental submit on Enter
+      numberInput.addEventListener('keydown', (e) => {
+        if(e.key === 'Enter') e.preventDefault();
+      });
+
+      // Optional: detect if likely mobile and simplify UI
+      function isMobile() {
+        return /Mobi|Android|iPhone|iPad|Windows Phone/i.test(navigator.userAgent);
+      }
+      if(isMobile()){
+        // show floating quick button
+        document.querySelector('.floating').style.display = 'block';
+      }
+    })();
+  </script>
+</body>
+</html>
